@@ -26,7 +26,8 @@ Parameters:
   ImageId:
     Description: Amazon Linux 2 AMI ID
     Type: AWS::EC2::Image::Id
-    Default: ami-02b7d5b1e55a7b5f1    
+    Default: ami-03400c3b73b5086e9
+    
 
 # Resources
 Resources:
@@ -114,7 +115,7 @@ Resources:
   NatGateway:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt NatGatewayEIP1.AllocationId
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
       SubnetId: !Ref PublicSubnet
 
   NatGatewayEIP:
