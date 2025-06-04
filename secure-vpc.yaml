@@ -28,7 +28,7 @@ Parameters:
     Default: ami-02b7d5b1e55a7b5f1    
 
 # Resources
-
+Resources:
   # VPC
   SecureVPC:
     Type: AWS::EC2::VPC
