@@ -9,7 +9,6 @@ Parameters:
     ConstraintDescription: Must be the name of an existing EC2 KeyPair
     Default: SecureVPC
 
-
   VpcCIDR:
     Description: CIDR block for the VPC
     Type: String
@@ -20,20 +19,10 @@ Parameters:
     Type: String
     Default: "10.0.1.0/24"
 
-  PublicSubnet2CIDR:
-    Description: CIDR block for the Public Subnet in the second Availability Zone (AZ)
-    Type: String
-    Default: "10.0.2.0/24"
-
   PrivateSubnetCIDR:
     Description: CIDR block for the Private Subnet in the first Availability Zone (AZ)
     Type: String
     Default: "10.0.3.0/24"
-
-  PrivateSubnet2CIDR:
-    Description: CIDR block for the Private Subnet in the second Availability Zone (AZ)
-    Type: String
-    Default: "10.0.4.0/24"
 
   ImageId:
     Description: Amazon Linux 2 AMI ID
@@ -88,17 +77,6 @@ Resources:
         - Key: Name
           Value: PublicSubnet
 
-  PublicSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref SecureVPC
-      CidrBlock: !Ref PublicSubnet2CIDR
-      AvailabilityZone: !Select [ 1, !GetAZs "" ]
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: PublicSubnet2
-
   # Private route table and subnets
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
@@ -118,26 +96,8 @@ Resources:
         - Key: Name
           Value: PrivateSubnet
 
-  PrivateSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref SecureVPC
-      CidrBlock: !Ref PrivateSubnet2CIDR
-      AvailabilityZone: !Select [ 1, !GetAZs "" ]
-      Tags:
-        - Key: Name
-          Value: PrivateSubnet2
-
   # Routes  
   PublicRoute:
-    Type: AWS::EC2::Route
-    DependsOn: AttachGateway
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: "0.0.0.0/0"
-      GatewayId: !Ref InternetGateway
-
-  PublicRoute2:
     Type: AWS::EC2::Route
     DependsOn: AttachGateway
     Properties:
@@ -152,13 +112,6 @@ Resources:
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref NatGateway
 
-  PrivateRoute2:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationCidrBlock: "0.0.0.0/0"
-      NatGatewayId: !Ref NatGateway2
-
   # NAT Gateways and Elastic IP
   NatGateway:
     Type: AWS::EC2::NatGateway
@@ -166,19 +119,7 @@ Resources:
       AllocationId: !GetAtt NatGatewayEIP.AllocationId
       SubnetId: !Ref PublicSubnet
 
-  NatGateway2:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGatewayEIP2.AllocationId
-      SubnetId: !Ref PublicSubnet2
-
   NatGatewayEIP:
-    Type: AWS::EC2::EIP
-    DependsOn: AttachGateway
-    Properties:
-      Domain: vpc
-
-  NatGatewayEIP2:
     Type: AWS::EC2::EIP
     DependsOn: AttachGateway
     Properties:
