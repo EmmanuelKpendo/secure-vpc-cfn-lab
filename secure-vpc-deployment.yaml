@@ -1,0 +1,3 @@
+template-file-path: secure-vpc.yaml
+parameters: {}
+tags: {}
