@@ -22,7 +22,7 @@ Parameters:
   PrivateSubnetCIDR:
     Description: CIDR block for the Private Subnet in the first Availability Zone (AZ)
     Type: String
-    Default: "10.0.3.0/24"
+    Default: "10.0.2.0/24"
 
   ImageId:
     Description: Amazon Linux 2 AMI ID
