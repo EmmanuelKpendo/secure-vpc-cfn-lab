@@ -91,7 +91,7 @@ Resources:
     Properties:
       VpcId: !Ref SecureVPC
       CidrBlock: !Ref PrivateSubnetCIDR
-      AvailabilityZone: !Select [ 0, !GetAZs "" ]
+      AvailabilityZone: !Select [ 1, !GetAZs "" ]
       Tags:
         - Key: Name
           Value: PrivateSubnet
@@ -112,6 +112,19 @@ Resources:
       DestinationCidrBlock: "0.0.0.0/0"
       NatGatewayId: !Ref NatGateway
 
+  # Route table association
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
   # NAT Gateways and Elastic IP
   NatGateway:
     Type: AWS::EC2::NatGateway
@@ -121,29 +134,47 @@ Resources:
 
   NatGatewayEIP:
     Type: AWS::EC2::EIP
-    DependsOn: AttachGateway
+    # DependsOn: AttachGateway
     Properties:
       Domain: vpc
 
 
-  # Security Group
-  InstanceSecurityGroup:
+  # Security Groups
+  PublicInstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable HTTP and SSH access
       VpcId: !Ref SecureVPC
       SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
+        # - IpProtocol: tcp
+        #   FromPort: 22
+        #   ToPort: 22
+        #   CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !Ref PrivateSubnetCIDR
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: !Sub "${NatGatewayEIP}/32"
+
       Tags:
         - Key: Name
-          Value: InstanceSecurityGroup
+          Value: PublicInstanceSecurityGroup
+  
+  PrivateInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP only
+      VpcId: !Ref SecureVPC
+      Tags:
+        - Key: Name
+          Value: PrivateInstanceSecurityGroup  
   
   # IAM Role for SSM and instance profile
   InstanceSSMRole:
@@ -156,14 +187,12 @@ Resources:
             Principal:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
-      Path: "/"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore 
 
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      Path: "/"
       Roles: 
         - !Ref InstanceSSMRole
 
@@ -176,7 +205,8 @@ Resources:
       KeyName: !Ref KeyName
       IamInstanceProfile: !Ref InstanceProfile
       SubnetId: !Ref PublicSubnet
-      SecurityGroupIds: [!Ref InstanceSecurityGroup]
+      SecurityGroupIds: 
+        - !Ref PublicInstanceSecurityGroup
       Tags: 
         - Key: Name 
           Value: ApacheWebServer
@@ -198,7 +228,7 @@ Resources:
       KeyName: !Ref KeyName
       SubnetId: !Ref PrivateSubnet
       SecurityGroupIds: 
-        - !Ref InstanceSecurityGroup
+        - !Ref PublicInstanceSecurityGroup
       IamInstanceProfile: !Ref InstanceProfile
       Tags:
         - Key: Name
